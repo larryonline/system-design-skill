@@ -36,15 +36,42 @@ The 12-layer methodology serves as a flexible toolkit. First read `references/me
 1. Select applicable layers based on the user's scenario; execution of all layers in order is not required
 2. For inapplicable layers, explain why in one sentence and skip
 3. Leapfrogging and recombination are allowed; the user may request deeper exploration of any layer at any time
-4. Upon completing each logic block, incrementally append to the design baseline file
+
+**Logic block gates:**
+
+Logic blocks must not be skipped or merged without user confirmation. Between each block, execute a mandatory gate before proceeding:
+
+| Gate | Trigger | Required Action |
+|------|---------|-----------------|
+| **Boundary stability gate** | After completing Block 1 (Scenario → Boundary), before entering Block 2 | For each core/external responsibility, output a Semantic Attribution table: concept → Core or External → justification. Ask user: "Are the boundaries stable? Can we proceed to core abstraction?" Do NOT propose core concepts until the user confirms. |
+| **Block transition gate** | After completing any logic block, before entering the next | Execute coverage check against all UC-IDs. Output: "X/Y use cases covered. Uncovered: [list]." Ask user: "Continue to next block?" |
+
+**Design baseline write rule:**
+
+- Write to the design baseline ONLY after the user confirms the logic block's decisions
+- If a concept previously written to the baseline is later proven wrong, revert it and record the correction in the version history
+- Never write unconfirmed concepts to the baseline—it is cheaper to delay writing than to correct already-written content
+
+**Block 1 special requirements: extension scenario classification**
+
+When the system supports extensions (plugins, DLC, MOD, add-ons), scenario collection MUST cover the full extension lifecycle with structured classification, not as scattered afterthoughts:
+
+| Extension Dimension | Typical Scenarios | Description |
+|---------------------|-------------------|-------------|
+| New content registration | New definitions, new configurations, new profiles via extension | Extensions introduce content that does not exist in the base system |
+| Content override | Extensions modifying or replacing existing content | Extensions change what the base system defined |
+| Conflict detection | Detecting and reporting conflicts between sources | Multiple extensions claim the same content or contradict each other |
+| Uninstall and rollback | Removing extension content and restoring prior state | Extension is removed and the system must return to a consistent state |
+
+A system claiming to support extensions must cover the complete chain in use cases: register → load → instantiate → conflict resolve → uninstall.
 
 **Logic block breakdown:**
 
-| Logic Block | Layers Included | After Completion |
-|-------------|----------------|------------------|
-| Scenario → Boundary | Scenario Collection → Commonality Extraction → System Positioning → Semantic Attribution and Boundary Governance | Generate use case table file + design baseline scenario analysis section, execute coverage check |
-| Abstraction → Failure | Core Abstraction Design → Interface Contract → Runtime Semantics → Failure Model | Append to design baseline, execute coverage check |
-| Engineering → Versioning | Engineering Constraint Verification → Role Workflow → Extension and Governance → Versioning Solidification | Append to design baseline, execute coverage check |
+| Logic Block | Layers Included | Gate Before Proceeding |
+|-------------|----------------|----------------------|
+| Scenario → Boundary | Scenario Collection → Commonality Extraction → System Positioning → Semantic Attribution and Boundary Governance | Boundary stability gate: output Semantic Attribution table, user confirms boundaries are stable |
+| Abstraction → Failure | Core Abstraction Design → Interface Contract → Runtime Semantics → Failure Model | Coverage check against all UC-IDs, user confirms |
+| Engineering → Versioning | Engineering Constraint Verification → Role Workflow → Extension and Governance → Versioning Solidification | Coverage check, user confirms |
 
 ## 3. Interactive Guidance Rules
 
@@ -60,8 +87,9 @@ The 12-layer methodology serves as a flexible toolkit. First read `references/me
 1. Information explicitly provided by the user
 2. Information readable from the project codebase/documentation
 3. Information reasonably inferable from other decisions within the same layer
-4. Best practices corresponding to the technology stack
-5. Reference suggestions from common industry practices
+4. **Native capabilities of the target platform** (e.g., Godot Resource/Signal/Expression/@export/@onready, React Context/useReducer/Portal, Unreal GameplayAbility/DataAsset). Actively consult platform-specific references before proposing mechanisms that the platform already provides. Failure to check platform primitives leads to designs that reinvent built-in capabilities (e.g., designing a custom expression evaluator when Godot provides `Expression`, building a custom event bus when React provides Context + useReducer).
+5. Best practices corresponding to the technology stack
+6. Reference suggestions from common industry practices
 
 ### Per-Layer Processing Approach
 
@@ -71,6 +99,36 @@ The 12-layer methodology serves as a flexible toolkit. First read `references/me
 4. User confirms or revises
 5. Record the decision in the design baseline, referencing relevant UC-IDs of use cases (e.g., `Related use cases: UC-03, UC-07`)
 6. Provide a 1-2 sentence summary
+
+### Concept Self-Check (Mandatory for Core Abstraction Design)
+
+Before proposing any new core concept in Layer 5, execute this judgment chain and output the result to the user:
+
+```
+Can existing concepts express this?
+  → Yes: use existing concepts. Stop here.
+  → No: continue.
+
+Can existing mechanisms compose this?
+  → Yes: compose; do not add new concepts. Stop here.
+  → No: continue.
+
+Is it merely a configuration difference?
+  → Yes: use configuration, not new concepts. Stop here.
+  → No: continue.
+
+Is it merely an external interpretation difference?
+  → Yes: leave to external systems. Stop here.
+  → No: continue.
+
+Has a genuinely new stable core semantics emerged?
+  → Only now is introducing a new concept justified.
+```
+
+This prevents three common failure patterns:
+- **Implementation details elevated to core concepts**: e.g., a DependencyGraph that is purely a derived index of formula expressions, not a standalone concept
+- **Configuration options turned into concepts**: e.g., a configurable CalculationPipeline when a hardcoded calculation order suffices
+- **Naming conventions replacing mechanisms**: e.g., a SourceRegistry when fact_id prefix matching already handles source tracking
 
 ## 4. Automated Analysis & Review Rules
 
@@ -98,7 +156,7 @@ When the user has an existing design to examine:
 - Use case table path: `docs/<system-name>-use-cases.md`
 - **Inform the user of both file paths at the start of the conversation; the user may change them**
 - After the scenario collection layer is completed, generate both files simultaneously
-- Incremental persistence: append to the design baseline after each logic block is completed
+- **Incremental persistence**: append to the design baseline ONLY after the logic block's decisions are confirmed by the user. Do not write unconfirmed concepts to the baseline—it is cheaper to delay writing than to correct already-written content
 - Confirm the path exists before writing; create it if it does not
 
 **Design Baseline File Template:**
@@ -168,4 +226,7 @@ Core principles:
 - SKILL.md serves only as the application skeleton; methodology details are read from `references/` on demand
 - The 12 layers are not mandatory to execute in full; leapfrogging and recombination are allowed
 - The user may switch modes, skip layers, or dive deeper into any layer at any time
+- **Boundary stability gate**: before entering core abstraction design, output a Semantic Attribution table and get user confirmation. Do not skip this gate even if the user seems satisfied with scenario collection
+- **Concept self-check**: before proposing any new core concept, execute the judgment chain (existing concepts? → existing mechanisms? → configuration difference? → external interpretation? → genuinely new semantics?). Output the result
+- **Design baseline write discipline**: write to the baseline only after the user confirms the logic block. Never write unconfirmed concepts
 - Pause after completing each logic block and ask the user whether to continue

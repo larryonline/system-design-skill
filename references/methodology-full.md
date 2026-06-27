@@ -189,6 +189,19 @@ What are the high-frequency scenarios, low-frequency critical scenarios, and fut
 * External system participant inventory
 * Preliminary input/output descriptions
 
+### 5.4 Extension Scenario Classification
+
+When the system supports extensions (plugins, DLC, MOD, add-ons, third-party integrations), scenarios must be collected across the full extension lifecycle. Do not treat extension scenarios as scattered afterthoughts—structure them explicitly:
+
+| Extension Dimension | Core Question | Typical UC Coverage |
+|---------------------|---------------|---------------------|
+| New content registration | How does an extension introduce new definitions, configurations, or content that does not exist in the base system? | Registering new fact definitions, new profiles, new modifier templates, new entity types |
+| Content override | How does an extension modify or replace content defined by the base system or other extensions? | Overriding formulas, replacing default values, extending existing profiles, changing calculation rules |
+| Conflict detection | What happens when multiple extensions claim the same content or make contradictory declarations? | Same fact_id declared by two packages, overlapping profile assignments, incompatible modifier configurations |
+| Uninstall and rollback | What happens when an extension is removed? How does the system return to a consistent state? | Removing all content from a package prefix, restoring overridden base content, handling dangling references |
+
+A system claiming to support extensions must cover the complete chain in its use case table: **register → load → instantiate → conflict resolve → uninstall**.
+
 ---
 
 ## 6. Layer 2: Commonality Extraction
